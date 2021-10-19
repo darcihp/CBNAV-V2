@@ -2,23 +2,26 @@ import cv2
 import numpy as np
 import random as rng
 import json
+import os
 
 class pre_image:
-    def __init__(self,_image, _erode=62, _dilate=5, _blur=1):
+    def __init__(self,_image, _erode=1, _dilate=1):
         self.image = _image
+        self.map_image = None
         self.erode = _erode
         self.dilate = _dilate
-        self.blur = _blur;
         self.d = {}
-
+        self.d_p = {}
+        self.connection = []
+        self.l_connection = []
+        self.contours = []
+        self.square_id = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','X','Y','Z']
+    
     def set_erode(self, _erode):
         self.erode = _erode
 
     def set_dilate(self, _dilate):
         self.dilate = _dilate
-
-    def set_blur(self, _blur):
-        self.blur = _blur
 
     def get_erode(self):
         return self.erode
@@ -26,32 +29,139 @@ class pre_image:
     def get_dilate(self):
         return self.dilate
 
-    def get_blur(self):
-        return self.blur
+    def get_map_image(self):
+        return self.map_image
 
-    def save_image(self, m_image, prefix):
-        cv2.imwrite(prefix+self.image, m_image)
+    def get_l_connection(self):
+        return self.l_connection
+
+    def get_connection(self):
+        return self.connection
+
+    def get_position(self):
+        return self.position
+
+    def set_l_connection(self):
+        self.l_connection = []
+
+    def get_contours(self):
+        return self.contours
+
+    def get_square_id(self):
+        return self.square_id
+
+    def save_image(self, prefix=""):
+        cv2.imwrite("./img/"+prefix+self.image, self.map_image)
         print("Saved_IMG")
 
-    def save_dictionary(self, prefix):
-        a_file = open(prefix+self.image.split(".")[0]+".json", "w")
-        json.dump(self.d, a_file)
+    def save_dictionary(self, prefix="", position=False):
+
+        if(position == False):
+            for i, connection in enumerate(self.connection):
+                self.d[connection[0]].append(connection[1])
+                self.d[connection[1]].append(connection[0])
+
+        a_file = open("./dic/"+prefix+self.image.split(".")[0]+".json", "w")
+
+        if(position == False):
+            json.dump(self.d, a_file)
+        else:
+            json.dump(self.d_p, a_file)
+
         a_file.close()
         print("Saved_DIC")
 
-    def pre_imagem(self, _load=False):
-
-        image = cv2.imread(self.image)
+    def find_contours(self, _load=False):
+        image = cv2.imread("./png/"+self.image)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        ret, thresh = cv2.threshold(gray, 0, 255, 0)
+        ret, thresh = cv2.threshold(gray, 0, 1, 0)
 
         if _load == True:
             countours_max = 0
             erode_max = 0
             dilate_max = 0
 
+            for i in range(1, 200):
+                ret, thresh = cv2.threshold(gray, 0, 1, 0)
+                thresh = cv2.erode(thresh, None, iterations=i)
+                thresh = cv2.dilate(thresh, None, iterations=self.dilate)
+                contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+                if (len(contours) > countours_max):
+                    countours_max = len(contours)
+                    erode_max = i
+                    print(countours_max)
+            
+            for j in range(1, 200):
+                ret, thresh = cv2.threshold(gray, 0, 1, 0)
+                thresh = cv2.erode(thresh, None, iterations=erode_max)
+                thresh = cv2.dilate(thresh, None, iterations=j)
+                contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+                
+                if (len(contours) <= countours_max):
+                    break
+                else:
+                    dilate_max = j
+            
+            self.erode = erode_max
+            self.dilate = dilate_max
+            
+            ret, thresh = cv2.threshold(gray, 0, 1, 0)
+            thresh = cv2.erode(thresh, None, iterations=self.erode)
+            thresh = cv2.dilate(thresh, None, iterations=self.dilate)  
+            contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        else:
+            thresh = cv2.erode(thresh, None, iterations=self.erode)
+            thresh = cv2.dilate(thresh, None, iterations=self.dilate)  
+            contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        
+        self.contours = contours
+
+        contours_poly = [None]*len(contours)
+        #boundRect = [None]*len(contours)
+        centers = [None]*len(contours)
+        radius = [None]*len(contours)
+        cX = [None]*len(contours)
+        cY = [None]*len(contours)
+
+        for i, c in enumerate(contours):
+            contours_poly[i] = cv2.approxPolyDP(c, 3, True)
+            M = cv2.moments(c)
+
+            if M["m00"] != 0:
+                cX[i] = int(M["m10"] / M["m00"])
+                cY[i] = int(M["m01"] / M["m00"])
+            else:
+                cX[i] = 0
+                cY[i] = 0
+
+        for i in range(len(contours)):
+            color = (rng.randint(0,256), rng.randint(0,256), rng.randint(0,256))
+            cv2.drawContours(image, contours_poly, i, (0,0,255), -1)
+            cv2.putText(image, self.square_id[i], (cX[i], cY[i]), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2) 
+            '''
+            Created dictionary
+            '''
+            if (self.square_id[i] not in self.d):
+                self.d[self.square_id[i]] = []
+                self.d_p[self.square_id[i]] = [(cX[i], cY[i])]
+
+        self.map_image = image
+
+    def pre_imagem(self, _load=False):
+
+        image = cv2.imread("./png/"+self.image)
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        ret, thresh = cv2.threshold(gray, 0, 1, 0)
+
+        if _load == True:
+            countours_max = 0        
+            erode_max = 0
+            dilate_max = 0
+
             for i in range(1, 256):
-                ret, thresh = cv2.threshold(gray, 0, 255, 0)
+                ret, thresh = cv2.threshold(gray, 0, 1, 0)
                 thresh = cv2.erode(thresh, None, iterations=i)
                 thresh = cv2.dilate(thresh, None, iterations=self.dilate)
                 contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -62,7 +172,7 @@ class pre_image:
                     print(countours_max)
 
             for j in range(1, 256):
-                ret, thresh = cv2.threshold(gray, 0, 255, 0)
+                ret, thresh = cv2.threshold(gray, 0, 1, 0)
                 thresh = cv2.erode(thresh, None, iterations=erode_max)
                 thresh = cv2.dilate(thresh, None, iterations=j)
                 contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -72,11 +182,10 @@ class pre_image:
                 else:
                     dilate_max = j
 
-
             self.erode = erode_max
             self.dilate = dilate_max
 
-        ret, thresh = cv2.threshold(gray, 0, 255, 0)
+        ret, thresh = cv2.threshold(gray, 0, 1, 0)
         thresh = cv2.erode(thresh, None, iterations=self.erode)
         thresh = cv2.dilate(thresh, None, iterations=self.dilate)        
 
@@ -104,9 +213,9 @@ class pre_image:
                 cX[i] = 0
                 cY[i] = 0
 
-        drawing = np.zeros((thresh.shape[0], thresh.shape[1], 3), dtype=np.uint8)
+        #drawing = np.zeros((thresh.shape[0], thresh.shape[1], 3), dtype=np.uint8)
         
-        square_id = ['A','B','C','D','E','F','G','H','I']
+        square_id = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','X','Y','Z']
 
         for i in range(len(contours)):
             color = (rng.randint(0,256), rng.randint(0,256), rng.randint(0,256))
@@ -131,7 +240,7 @@ class pre_image:
 
         res = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
 
-        ret, thresh = cv2.threshold(res, 0, 255, 0)
+        ret, thresh = cv2.threshold(res, 0, 1, 0)
         doors_contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         doors_contours_poly = [None]*len(doors_contours)
         cX = [None]*len(doors_contours)
@@ -141,7 +250,7 @@ class pre_image:
             doors_contours_poly[i] = cv2.approxPolyDP(c, 3, True)
             centers[i], radius[i] = cv2.minEnclosingCircle(doors_contours_poly[i])
            
-        door_id = ['DA','DB','DC','DD','DE','DF','DG','DH','DI']
+        door_id = ['DA','DB','DC','DD','DE','DF','DG','DH','DI','DJ','DK','DL','DM','DN','DO','DP','DQ','DR','DS','DT','DU','DV','DX','DY','DZ']
 
         connections = []
 
@@ -182,45 +291,46 @@ class pre_image:
             l_connection = []
             for l, j in enumerate(arr):
                 for k in j:
-                    if (_horizontal == True):
-                        if ((k[0,1] + 1 == _min_y or k[0,1] - 1 == _min_y or k[0,1] == _min_y or
-                            k[0,1] + 1 == _max_y or k[0,1] - 1 == _max_y or k[0,1] == _max_y)):
-                            
-                            ok_min = False
-                            ok_max = False
+                    #if (_horizontal == True):
+                    if ((k[0,1] + 1 == _min_y or k[0,1] - 1 == _min_y or k[0,1] == _min_y or
+                        k[0,1] + 1 == _max_y or k[0,1] - 1 == _max_y or k[0,1] == _max_y)):
+                        
+                        ok_min = False
+                        ok_max = False
 
-                            for m in j:
-                                if(m[0,0] <= _min_x):
-                                    ok_min = True
-                                if(m[0,0] >= _max_x):
-                                    ok_max = True
-                                if (ok_min == True and ok_max == True):
-                                    #print(square_id[l])
-                                    l_connection.append(square_id[l])
-                                    break
-                            break
-                    else:
-                        if ((k[0,0] + 1 == _min_x or k[0,0] - 1 == _min_x or k[0,0] == _min_x or
-                            k[0,0] + 1 == _max_x or k[0,0] - 1 == _max_x or k[0,0] == _max_x)):
-                            ok_min = False
-                            ok_max = False
+                        for m in j:
+                            if(m[0,0] <= _min_x):
+                                ok_min = True
+                            if(m[0,0] >= _max_x):
+                                ok_max = True
+                            if (ok_min == True and ok_max == True):
+                                #print(square_id[l])
+                                l_connection.append(square_id[l])
+                                break
+                        break
+                    #else:
+                    elif ((k[0,0] + 1 == _min_x or k[0,0] - 1 == _min_x or k[0,0] == _min_x or
+                        k[0,0] + 1 == _max_x or k[0,0] - 1 == _max_x or k[0,0] == _max_x)):
+                        ok_min = False
+                        ok_max = False
 
-                            for m in j:
-                                if(m[0,1] <= _min_y):
-                                    ok_min = True
-                                if(m[0,1] >= _max_y):
-                                    ok_max = True
-                                if (ok_min == True and ok_max == True):
-                                    #print(square_id[l])
-                                    l_connection.append(square_id[l])
-                                    break
-                            break
+                        for m in j:
+                            if(m[0,1] <= _min_y):
+                                ok_min = True
+                            if(m[0,1] >= _max_y):
+                                ok_max = True
+                            if (ok_min == True and ok_max == True):
+                                #print(square_id[l])
+                                l_connection.append(square_id[l])
+                                break
+                        break
                     #print ("X: "+ str(k[0,0]) + " Y: " + str(k[0,1]))   
+                #print(" ")
             connections.append(l_connection)
 
         self.save_image(res, "D_")
 
-        #print(connections)
+        print(connections)
         for i, connection in enumerate(connections):
             self.d[connection[0]].append(connection[1])
             self.d[connection[1]].append(connection[0])
@@ -228,92 +338,123 @@ class pre_image:
         #print (self.d)
         self.save_dictionary("d_")
 
-def on_change_erode(value):
-    _pre_image.set_erode(value)
-    show_image()
-
-def on_change_dilate(value):
-    _pre_image.set_dilate(value)
-    show_image()
-
-def on_change_blur(value):
-    _pre_image.set_blur(value)
-    show_image()
 
 def show_image():
-    cv2.imshow(windowName, _pre_image.pre_imagem())
+    cv2.imshow(windowName, _pre_image.find_contours(True))
 
 
-maps_id = ['01003d58d5d927cfa79cf596e87295ef.png',
-'01014942a89d1f39767cb3c186e0891e.png',
-'010296df7caca9a6886d5ee51538f778.png',
-'0102b1a5299fcd7efefabb58d89cc609.png',
-'0102f77e57d56d086c86f519da6b3099.png',
-'0108996080ac89b4e476dc88e5768fad.png',
-'0108b6baf430602dc5d96da68ddb4d58.png',
-'010909a4dfe6950a6a6d7dc1e13550ef.png',
-'01092376b49403629a78609a148be569.png',
-'01014942a89d1f39767cb3c186e0891e.png',
-'0109413c614258a8814099751a0871b7.png',
-'010296df7caca9a6886d5ee51538f778.png',
-'0109fd97ca1f0002d476d07a708b8917.png',
-'0102b1a5299fcd7efefabb58d89cc609.png',
-'010a80bc554638b09a1aa9d7fe684aee.png',
-'0102f77e57d56d086c86f519da6b3099.png',
-'010cf6dd452b6ee5ec158f307c98cb1e.png',
-'0108996080ac89b4e476dc88e5768fad.png',
-'010e294b8cc56aa73b24f8ab0dd4f560.png'
-]
+def click(event, x, y, flags, param):
+
+    if event == cv2.EVENT_LBUTTONUP:
+
+        contours = param.get_contours()
+        cX = [None]*len(contours)
+        cY = [None]*len(contours)
+
+        for i, c in enumerate(contours):
+            M = cv2.moments(c)
+
+            if M["m00"] != 0:
+                cX[i] = int(M["m10"] / M["m00"])
+                cY[i] = int(M["m01"] / M["m00"])
+            else:
+                cX[i] = 0
+                cY[i] = 0
+
+            a = np.array((cX[i], cY[i]))
+            b = np.array((x, y))
+
+            dist = np.sqrt(np.sum(np.square(a-b)))
+
+            if(dist < 40):
+                param.get_l_connection().append(param.get_square_id()[i])
+                cv2.circle(param.get_map_image(), (cX[i],cY[i]), 30, (0,255,0), 5)
+                print("OK")
+                break
+
+    if event == cv2.EVENT_MBUTTONUP:
+        print(param.get_l_connection())
+        print(param.get_connection())
+
+'''
+maps_id = []
+for _, _, arquivos in os.walk("./png"):
+    maps_id.append(arquivos)
+for i in range(len(maps_id[0][:])):
+    try:        
+        print(maps_id[0][i])
+        _pre_image = pre_image(maps_id[0][i])
+        _pre_image.pre_imagem(True)
+    except:
+        print("Error")
+        f = open("./log/error", "a")
+        f.write(maps_id[0][i])
+        f.write("\n")
+        f.close()
+        continue
+
+
+'''
+'''
+maps_id = []
+for _, _, arquivos in os.walk("./png"):
+    maps_id.append(arquivos)
+'''
+
+a_file = open("todo", "r")
+maps_id = a_file.readlines()
+a_file.close()
 
 for i in range(len(maps_id)):
-    _pre_image = pre_image(maps_id[i])
-    _pre_image.pre_imagem(True)
+    print(maps_id[i])
 
+    _rooms = None
 
-#for _, _, arquivos in os.walk(ml_lab1_path + "/features"): print("")
+    _pre_image = pre_image(maps_id[i].strip("\n"))
+    windowName = 'image'  
+
+    cv2.namedWindow(windowName, cv2.WINDOW_NORMAL)
+    cv2.resizeWindow(windowName, 900, 900) 
+
+    _pre_image.find_contours(True)
+
+    cv2.setMouseCallback(windowName, click, _pre_image)
+
+    while True:
+        cv2.imshow(windowName, _pre_image.get_map_image())
+        # Press Esc to exit
+        ch = cv2.waitKey(5)
+        if ch == 27:
+            break
+
+        ###Limpa última ligação - space
+        if ch == 32:
+            _pre_image.set_l_connection()
+        
+        ###Adiciona ligação - a
+        if ch == 97:
+            _pre_image.get_connection().append(_pre_image.get_l_connection())
+            _pre_image.set_l_connection()
+            print(_pre_image.get_connection())
+
+        ### Salva tudo - s
+        if ch == 115:
+            _pre_image.save_dictionary(prefix="d_")
+            _pre_image.save_dictionary(prefix="p_", position=True)
+            _pre_image.save_image("I_")
+            with open("todo", "w") as fout:
+                fout.writelines(maps_id[i+1:])
+            break
+
+    cv2.destroyAllWindows()
 
 '''
-01003d58d5d927cfa79cf596e87295ef.png
-01014942a89d1f39767cb3c186e0891e.png
-010296df7caca9a6886d5ee51538f778.png
-0102b1a5299fcd7efefabb58d89cc609.png
-0102f77e57d56d086c86f519da6b3099.png
-0108996080ac89b4e476dc88e5768fad.png
-0108b6baf430602dc5d96da68ddb4d58.png
-010909a4dfe6950a6a6d7dc1e13550ef.png
-01092376b49403629a78609a148be569.png
-01014942a89d1f39767cb3c186e0891e.png
-0109413c614258a8814099751a0871b7.png
-010296df7caca9a6886d5ee51538f778.png
-0109fd97ca1f0002d476d07a708b8917.png
-0102b1a5299fcd7efefabb58d89cc609.png
-010a80bc554638b09a1aa9d7fe684aee.png
-0102f77e57d56d086c86f519da6b3099.png
-010cf6dd452b6ee5ec158f307c98cb1e.png
-0108996080ac89b4e476dc88e5768fad.png
-010e294b8cc56aa73b24f8ab0dd4f560.png
-'''
-'''
-_pre_image = pre_image('0109fd97ca1f0002d476d07a708b8917.png')
-_pre_image.pre_imagem(True)
+#Cria arquivo com mapas a serem lidos
+for _, _, arquivos in os.walk("./png"):print("")
+for arquivo in arquivos:
+    f = open("todo", "a")
+    f.write(arquivo)
+    f.write("\n")
+    f.close()
 
-windowName = 'image'
-trackErode = 'trackErode'
-trackDilate = 'trackDilate'
-trackBlur = 'trackBlur'
-
-cv2.namedWindow(windowName, cv2.WINDOW_NORMAL)
-cv2.createTrackbar(trackErode, windowName, _pre_image.get_erode(), 255, on_change_erode)
-cv2.createTrackbar(trackDilate, windowName, _pre_image.get_dilate(), 255, on_change_dilate)
-cv2.createTrackbar(trackBlur, windowName, _pre_image.get_blur(), 5000, on_change_blur)
-
-show_image()
-
-while True:
-    # Press Esc to exit
-    ch = cv2.waitKey(5)
-    if ch == 27:
-        break
-
-cv2.destroyAllWindows()
 '''

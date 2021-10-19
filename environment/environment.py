@@ -30,7 +30,7 @@ class Environment:
         Adjacent matrix
         '''
         self._observation_adjacent_size = 100
-        self._observation_adjacent_use = True
+        self._observation_adjacent_use = False
 
         self._test_num = test_num
 
@@ -49,6 +49,10 @@ class Environment:
         if not self._env.init(path_to_world + ".world"):
             print("Error: Load world file -> " + path_to_world + ".world")
             exit(1)
+
+    def get_observation_rotation_size(self):
+        return self._observation_rotation_size
+
 
     def set_observation_rotation_size(self, size):
         """
