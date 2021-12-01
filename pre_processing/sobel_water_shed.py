@@ -14,7 +14,10 @@ from skimage.filters import rank
 from skimage.color import rgb2gray
 from skimage.util import img_as_ubyte
 
+from skimage.filters import sobel
 from sklearn.cluster import KMeans
+from scipy import ndimage
+
 
 class pre_image:
     def __init__(self,_image, _erode=1, _dilate=1):
@@ -83,6 +86,113 @@ class pre_image:
         a_file.close()
         print("Saved_DIC")
 
+    def find_contours_sobel(self):
+        img = Image.open("./png/"+self.image)
+        w = img.width
+        h = img.height
+
+        print(w)
+        print(h)
+
+        img = imread("./png/"+self.image)
+        img_gray = rgb2gray(img)
+        elevation_map = sobel(img_gray)     
+        markers = rank.gradient(img_gray, disk(100)) < 2
+        #markers = np.zeros_like(img_gray)
+        #markers[img_gray < 254] = 1
+        #markers[img_gray > 255] = 2
+        markers = ndi.label(markers)[0]
+        segmentation = watershed(elevation_map, markers)
+        for ir, row in enumerate(img_gray):
+            for ic, col in enumerate(row):
+                if col == 0:
+                    segmentation[ir][ic] = 0
+        anterior = 1000
+        relation = False
+
+        _dict = np.array([[0, 0], [1, 1]])
+
+        #Linha por linha
+
+        for ir, row in enumerate(segmentation):
+            for ic, col in enumerate(row):
+                if col != 0:
+                    if relation == False:
+                        anterior = col
+                        relation = True
+
+                    if relation == True:
+                        if (col != anterior):
+                            _dict = np.append(_dict, [[anterior, col]], axis = 0)
+                            #np.insert(d, [1, 2], axis=0)
+                            #d[anterior] = col
+                            #d = dict({anterior: col})
+                            #self.d.append(d)
+                            #print('Relation: {} : {}'.format(anterior, col))
+                        anterior = col
+                if col == 0:
+                    relation = False
+
+        #Coluna por coluna
+        for ir, row in enumerate(segmentation.T):
+            for ic, col in enumerate(row):
+                if col != 0:
+                    if relation == False:
+                        anterior = col
+                        relation = True
+
+                    if relation == True:
+                        if (col != anterior):
+                            _dict = np.append(_dict, [[anterior, col]], axis = 0)
+                            #np.insert(d, [1, 2], axis=0)
+                            #d[anterior] = col
+                            #d = dict({anterior: col})
+                            #self.d.append(d)
+                            #print('Relation: {} : {}'.format(anterior, col))
+                        anterior = col
+                if col == 0:
+                    relation = False
+
+        #print(d)
+
+        unique, counts = np.unique(_dict, return_counts=True)
+
+        print(unique)
+        print(counts)
+
+        model = np.array([[2, 1]])
+
+        for key in unique:
+            for j in unique:
+                count = 0
+                for row in _dict:
+                    if key == row[0] and j == row[1]:
+                        count = count + 1
+
+                if (count >= 30):
+                    if key in self.d:
+                        if not isinstance(self.d[key], list):
+                            self.d[key] = [self.d[key]]
+
+                        self.d[key].append(j)
+                    else:
+                        self.d[key] = j
+
+                    print("{} - {} : {}".format(key, j, count))
+        print(self.d)
+
+        #margins = dict(hspace=0.01, wspace=0.01, top=1, bottom=0, left=0, right=1)
+        plt.figure(figsize=(6, 3))
+        plt.subplot(121)
+        plt.imshow(img_gray, cmap=plt.cm.gray, interpolation='nearest')
+        plt.axis('off')
+        #plt.contour(segmentation, [0.5], linewidths=1.2, colors='y')
+
+        plt.subplot(122)
+        plt.imshow(segmentation, cmap=plt.cm.jet, interpolation='nearest')
+        plt.axis('off')
+        #plt.subplots_adjust(**margins)
+
     def find_contours(self, _load=False):
 
         img = Image.open("./png/"+self.image)
@@ -97,7 +207,7 @@ class pre_image:
 
         image = img_as_ubyte(img_gray)
 
-        markers = rank.gradient(image, disk(100)) < 2
+        markers = rank.gradient(image, disk(180)) < 2
         
         markers = ndi.label(markers)[0]
 
@@ -220,9 +330,8 @@ for i in range(len(maps_id)):
 
     _pre_image = pre_image(maps_id[i].strip("\n"))
 
-
-
-    _pre_image.find_contours(True)
+    #_pre_image.find_contours(True)
+    _pre_image.find_contours_sobel()
 
     while True:
 
