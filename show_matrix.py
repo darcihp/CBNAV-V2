@@ -8,14 +8,18 @@ plt.ion()
 #fig, (ax1, ax2) = plt.subplots(2)
 
 while True:
-    reward_matrix = np.load('matrices/reward_matrix_1.npy', allow_pickle=True)
+    reward_matrix = np.load('matrices/_grid_matrix_12.npy', allow_pickle=True)
+    #path_matrix = np.load('matrices/path_matrix_7.npy', allow_pickle=True)
+
+    #reward_matrix = np.add(reward_matrix, path_matrix)
+
     #reward_matrix = np.load('new_results/conv_reward_matrix_498.npy', allow_pickle=True)
     #print(reward_matrix[98, 66])
     plt.xlabel('Enviroment X (m)')
     plt.ylabel('Enviroment Y (m)')
     plt.tight_layout()
     #plt.imshow(reward_matrix.T, cmap=plt.get_cmap('YlOrRd') , origin='lower', vmin='-1', vmax='6', extent = [0 , 22, 0 , 22])
-    plt.imshow(reward_matrix.T, cmap=plt.get_cmap('YlOrRd') , origin='lower', vmin='-1', vmax='6')
+    plt.imshow(reward_matrix.T, cmap=plt.get_cmap('RdBu', 6) , origin='lower', vmin='0', vmax='5')
     plt.pause(0.01)
     #plt.show()
     time.sleep(1)

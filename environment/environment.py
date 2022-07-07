@@ -30,7 +30,7 @@ class Environment:
         Adjacent matrix
         '''
         self._observation_adjacent_size = 100
-        self._observation_adjacent_use = False
+        self._observation_adjacent_use = True
 
         self._test_num = test_num
 
@@ -88,6 +88,9 @@ class Environment:
         :return:
         """
         self._observation_rotation_use = use
+
+    def use_observation_adjacent_use(self, use=True):
+        self._observation_adjacent_use = use
 
     def _get_observation(self):
         """
@@ -200,10 +203,7 @@ class Environment:
                                                            env_robot_y,
                                                            env_robot_orientation,
                                                            env_done,
-                                                           self._laser_min_distance,
-                                                           self._laser_min_distance_angle,
-                                                           self._laser_max_distance,
-                                                           self._laser_max_distance_angle,
+                                                           self._get_observation(),
                                                            self._test_num,
                                                            self._n_step,
                                                            self._n_episode)
@@ -234,7 +234,8 @@ class Environment:
             '''
             Adjacent Matrix
             '''
-            weight = 2
+            #weight = self._fitness_data.angle_difference_from_robot_to_end(env_robot_x, env_robot_y, env_robot_orientation)
+            weight = 1
             '''
             proto 2
             '''
@@ -252,16 +253,13 @@ class Environment:
                 0,0,0,0,0,0,0,0,0,0
                 ])
             '''
-
-            
-
             am = np.array([
-                0,1,1,0,0,0,0,0,0,0,
+                0,1,0,1,0,0,0,0,0,0,
+                1,0,1,0,1,0,0,0,0,0,
+                0,1,0,0,0,0,0,0,0,0,
                 1,0,0,0,0,0,0,0,0,0,
-                1,0,0,1,1,0,0,0,0,0,
-                0,0,1,0,0,1,0,0,0,0,
-                0,0,1,0,0,0,0,0,0,0,
-                0,0,0,1,0,0,0,0,0,0,
+                0,1,0,0,0,1,0,0,0,0,
+                0,0,0,0,1,0,0,0,0,0,
                 0,0,0,0,0,0,0,0,0,0,
                 0,0,0,0,0,0,0,0,0,0,
                 0,0,0,0,0,0,0,0,0,0,

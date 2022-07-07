@@ -57,6 +57,32 @@ def map_action(action):
     return linear, angular
 '''
 
+'''
+ACTION_SIZE = 3
+
+def map_action(action):
+    if action == 0:
+        angular = 2
+        linear = 0.0
+
+    elif action == 1:
+        angular = 0.0
+        linear = 1
+
+    elif action == 2:
+        angular = -2
+        linear = 0.0
+        #DEBUG ONLY
+    elif action == 11:
+        angular = 0.0
+        linear = 0.0
+
+    else:
+        raise AttributeError("Invalid Action: {}".format(action))
+
+    return linear, angular
+'''
+
 ACTION_SIZE = 7
 
 def map_action(action):

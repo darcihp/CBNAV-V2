@@ -1,2 +1,2 @@
-model_checkpoint_path: "01e53c5618fd8d4d78c916b9dcc4ff92_out2000000.h5f"
-all_model_checkpoint_paths: "01e53c5618fd8d4d78c916b9dcc4ff92_out2000000.h5f"
+model_checkpoint_path: "dac28e8e324100b7fd7c14c841f79148_out_12200000.h5f"
+all_model_checkpoint_paths: "dac28e8e324100b7fd7c14c841f79148_out_12200000.h5f"

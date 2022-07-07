@@ -4,6 +4,7 @@ import math
 import time
 from .environment_node_data import NodeData, Mode
 from math import sqrt
+from collections import deque
 
 import numpy as np
 
@@ -34,7 +35,6 @@ class FitnessData:
         self._robot_y_last = 0.0
         self._robot_orientation_last = 0.0
 
-
         self._x_max = 0
         self._y_max = 0
 
@@ -47,14 +47,23 @@ class FitnessData:
         self._reward_matrix = np.array( [ [] , [] ] )
         self._path_matrix = np.array( [ [] , [] ] )
 
+        self.LOAD_MATRIX = False
+
         self._create_matrix = False
         self._create_path_matrix = False
 
         self._distance_end = 0
-
         self._gaussian_count = 0
+        self._decaiment_count = 0
+        self._final_reward = 2_000
 
-        self.fig, (self.ax1, self.ax2) = plt.subplots(2)
+        self.EXTEND_AREA = 2.0
+        self._invert_plot = True
+
+        self._grid_matrix = np.array( [ [] , [] ] )
+        self._path = []
+
+        #self.fig, (self.ax1, self.ax2) = plt.subplots(2)
 
     def get_end_node(self):
         """
@@ -171,12 +180,20 @@ class FitnessData:
         :return:
         """
         self._create_path_matrix = False
+        self._path = []
+        self._final_reward = 2_000
+        self._decaiment_count = 0
+
+        self._invert_plot = True
+
+        if(self.LOAD_MATRIX == True):
+            self.load_matrix()
+
         self._node_data.new_node_selection()
 
     def calculate_reward(self, robot_x: float, robot_y: float, 
-        robot_orientation: float, env_done: bool, 
-        laser_min_distance: float, laser_min_distance_angle: float, 
-        laser_max_distance: float, laser_max_distance_angle: float,
+        robot_orientation: float, env_done: bool,
+        observation: [],
         test_num: int,
         n_step: int,
         n_episode: int):
@@ -191,250 +208,150 @@ class FitnessData:
         done = False
         reward = 0.0
 
-        #Abstand zwinschen P(t-1) und P(t) --> #1
-        distance_between_last_step = self._distance_between_last_step(robot_x, robot_y)
+        REWARD_MATRIX_START = 1
+        REWARD_MATRIX_HALL = 0
+        PATH_MATRIX_OK = 5
+        xy_resolution = 0.05
 
-        #Abstand zwinschen P(t) und Endposition -->#2
+        '''
+        Verifica estado
+        '''
         distance_robot_to_end = self._distance_robot_to_end(robot_x, robot_y)
 
-        #Abstand zwinschen P(t-1) und Endposition -->#3
-        distance_robot_to_end_last = self._distance_robot_to_end(self._robot_x_last, self._robot_y_last)
+        if env_done:
+            reward = 0
+            done = True
 
-        # -->#4
-        distance_robot_to_end_diff = distance_robot_to_end_last - distance_robot_to_end;
-        # -->#5
-        distance_robot_to_end_diff_abs = abs(distance_robot_to_end_diff)
+        elif n_step == 200:
+            reward = 0
+            done = True
 
-        diff_rotation_to_end_last = self.angle_difference_from_robot_to_end(self._robot_x_last, self._robot_y_last,self._robot_orientation_last)
-
-        diff_rotation_to_end = self.angle_difference_from_robot_to_end(robot_x, robot_y,robot_orientation)
-
-        rotations_cos_sum =  math.cos(diff_rotation_to_end) #  [ -1 , 1]
-
-        diff_rotations = math.fabs(math.fabs(diff_rotation_to_end_last) - math.fabs(diff_rotation_to_end))   # [0 , pi]
-
-        if distance_between_last_step != 0:
-            distance_robot_to_end_diff_abs = distance_robot_to_end_diff_abs/distance_between_last_step # Normalization to [0 , 1]
-        else:
-            distance_robot_to_end_diff_abs = 0
-
-        if distance_robot_to_end > sqrt(distance_between_last_step**2 + distance_robot_to_end_last**2):
-            distance_robot_to_end_diff_abs *= -6.0 # [-6,0]
-        else:
-            distance_robot_to_end_diff_abs *= 6.0 #[0, 6]
-
-        if math.fabs(diff_rotation_to_end) > math.fabs(diff_rotation_to_end_last):
-
-            diff_rotations *= -3.0 # [-3xpi,0]
-        else:
-            diff_rotations *=  2.0 # [0,2xpi]
-
-        if(True):
-
-            PATH_MATRIX_START = 1
-            PATH_MATRIX_DECREASE = 1
-            REWARD_MATRIX_START = -1
-            REWARD_MATRIX_CRITICAL_0 = 0
-            REWARD_MATRIX_CRITICAL_1 = 0
-            REWARD_MATRIX_CRITICAL_2 = 0
-            REWARD_MATRIX_CRITICAL_3 = 0
-            REWARD_MATRIX_CRITICAL_4 = 4
-            REWARD_MATRIX_CRITICAL_5 = 5
-            REWARD_MATRIX_SAFETY = 6
-
-            if self._create_matrix == False:
-                x = robot_x * 10
-                y = robot_y * 10
-
-                x = int(x)
-                y = int(y)
-
-                print ('x: {}'.format(x))
-                print ('y: {}'.format(y))
-
-                print ('robot_x: {}'.format(robot_x))
-                print ('robot_y: {}'.format(robot_y))
-
-                self._reward_matrix = np.full((x+1, y+1), REWARD_MATRIX_START, dtype=float)
-                #self._reward_matrix = np.load('new_results/reward_matrix_'+str(test_num)+'.npy', allow_pickle=True)
-
-                self._x_max = x+1
-                self._y_max = y+1
-
-                print ('self._x_max: {}'.format(self._x_max))
-                print ('self._y_max: {}'.format(self._y_max))
-                self._create_matrix = True
-
-                self._x_last = x
-                self._y_last = y
-
-                '''                
-                kernel = np.array([np.array([0.077847, 0.123317, 0.077847]), np.array([0.123317, 0.195346, 0.123317]), np.array([0.077847, 0.123317, 0.077847])])
-
-                bias = 1
-                m, n = kernel.shape
-                y, x = self._reward_matrix.shape
-                y = y - m + 1
-                x = x - m + 1
-                new_image = np.zeros((y,x))
-                for i in range(y):
-                    for j in range(x):
-                        if self._reward_matrix[i,j] != -1:
-                            new_image[i][j] = np.sum(self._reward_matrix[i:i+m, j:j+m]*kernel) + bias
-                        else:
-                            new_image[i][j] = -1
-
-                np.save('new_results/conv_reward_matrix_'+str(test_num)+'.npy', new_image)
-
-                return 0
-                '''
-                #gauss_kernel = Gaussian2DKernel(2)
-                #smoothed_data_gauss = convolve(self._reward_matrix, gauss_kernel)
-                #np.save('new_results/conv_reward_matrix_'+str(test_num)+'.npy',  smoothed_data_gauss)
-
-            else:
-                x = robot_x * 10
-                y = robot_y * 10
-                x = int(x)
-                y = int(y)
-
-                if (int(robot_x * 10)+1) > self._x_max:
-                    x = int(robot_x * 10) + 1
-                    y = int(self._y_max)
-
-                    _x = x - int(self._x_max)
-
-                    _reward_matrix_temp = np.full((_x, y), REWARD_MATRIX_START, dtype=float)
-                    self._reward_matrix = np.append( self._reward_matrix, _reward_matrix_temp, axis=0)
-
-                    _path_matrix_temp = np.full((_x, y), PATH_MATRIX_START, dtype=float)
-                    self._path_matrix = np.append( self._path_matrix, _path_matrix_temp, axis=0)
-                    
-                    self._x_max = int(robot_x*10) + 1
-
-                    print('self._x_max: {}'.format(self._x_max))
-
-                if (int(robot_y * 10)+1) > self._y_max:
-                    x = int(self._x_max)
-                    y = int(robot_y * 10) + 1
-
-                    _y = y - int(self._y_max)
-
-                    _reward_matrix_temp = np.full((x, _y), REWARD_MATRIX_START, dtype=float)
-                    self._reward_matrix = np.append( self._reward_matrix, _reward_matrix_temp, axis=1)
-
-                    _path_matrix_temp = np.full((x, _y), PATH_MATRIX_START, dtype=float)
-                    self._path_matrix = np.append( self._path_matrix, _path_matrix_temp, axis=1)
-
-                    self._y_max = int(robot_y*10) + 1
-
-                    print('self._y_max: {}'.format(self._y_max))
-
-                if n_step == 0:
-                    self._x_last = int(robot_x * 10)
-                    self._y_last = int(robot_y * 10)
-
-            if self._create_path_matrix == False:
-                self._path_matrix = np.full((self._x_max, self._y_max), PATH_MATRIX_START, dtype=float)
-                self._create_path_matrix = True
-
-
-            if env_done:
-                self._reward_matrix[self._x_last, self._y_last] = REWARD_MATRIX_CRITICAL_0
-                reward = -180
-                done = True
-                np.save('matrices/path_matrix_'+str(test_num)+'.npy', self._path_matrix)
-                np.save('matrices/reward_matrix_'+str(test_num)+'.npy', self._reward_matrix)
-            elif n_step == 200:
-                reward = -130
-                done = True
-            elif distance_robot_to_end < self._node_data.get_node_end().radius():
-                reward = 180
-                print('Wir haben gewonnen')
-                done = self._handle_terminate_at_end()
-                np.save('matrices/path_matrix_'+str(test_num)+'.npy', self._path_matrix)
-                np.save('matrices/reward_matrix_'+str(test_num)+'.npy', self._reward_matrix)
-
-            else:
-                if (self._x_last != int(robot_x*10) or self._y_last != int(robot_y*10)):
-                    #reward matrix
-                    if(self._reward_matrix[self._x_last, self._y_last] != REWARD_MATRIX_CRITICAL_5):
-                        if(self._reward_matrix[self._x_last, self._y_last] != REWARD_MATRIX_CRITICAL_4):
-                            if(self._reward_matrix[self._x_last, self._y_last] != REWARD_MATRIX_CRITICAL_3):
-                                if(self._reward_matrix[self._x_last, self._y_last] != REWARD_MATRIX_CRITICAL_2):
-                                    if(self._reward_matrix[self._x_last, self._y_last] != REWARD_MATRIX_CRITICAL_1):
-                                        if(self._reward_matrix[self._x_last, self._y_last] != REWARD_MATRIX_CRITICAL_0):
-                                            self._reward_matrix[self._x_last, self._y_last] = REWARD_MATRIX_SAFETY
-                                        else:
-                                            self._reward_matrix[self._x_last, self._y_last] = REWARD_MATRIX_CRITICAL_1
-                                    else:
-                                        self._reward_matrix[self._x_last, self._y_last] = REWARD_MATRIX_CRITICAL_2
-                                else:
-                                    self._reward_matrix[self._x_last, self._y_last] = REWARD_MATRIX_CRITICAL_3
-                            else:
-                                self._reward_matrix[self._x_last, self._y_last] = REWARD_MATRIX_CRITICAL_4
-                        else:
-                            self._reward_matrix[self._x_last, self._y_last] = REWARD_MATRIX_CRITICAL_5
-
-                np.save('matrices/path_matrix_'+str(test_num)+'.npy', self._path_matrix)
-                np.save('matrices/reward_matrix_'+str(test_num)+'.npy', self._reward_matrix)
-
-                alpha = 1.5
-                #alpha = 2.0
-                #Distance between end point and reference point
-                ef = self._distance(self._node_data.get_node_end().x(), self._node_data.get_node_end().y(), self._node_data.get_node_start().x(), self._node_data.get_node_start().y())
-                r1 = (ef/(ef + distance_robot_to_end)) #- 0.5
-                #r1 = (ef/distance_robot_to_end) - 1
-                r1 = r1*alpha #[0 <-> alpha]
-
-                #r1 = self._distance_end - distance_robot_to_end
-
-                #theta = 1.0
-                theta = 0.5
-                x = self._node_data.get_node_end().x() - robot_x
-                y = self._node_data.get_node_end().y() - robot_y
-                diff = (robot_orientation - math.atan2(y, x)) % (math.pi * 2) #[0 <-> 2pi]
-                if diff >= math.pi:
-                    diff -= math.pi * 2
-                    diff = abs(diff)
-
-                r3 = 1 - (diff/math.pi)   #[0 <-> 1]
-                r3 = r3 * theta  #[0 <-> theta]
-
-                if (self._reward_matrix[self._x_last, self._y_last] >= REWARD_MATRIX_CRITICAL_0 and self._reward_matrix[self._x_last, self._y_last] <= REWARD_MATRIX_CRITICAL_1):
-                    reward = -10
-                elif (self._reward_matrix[self._x_last, self._y_last] > REWARD_MATRIX_CRITICAL_1 and self._reward_matrix[self._x_last, self._y_last] <= REWARD_MATRIX_CRITICAL_2):
-                    reward = -8
-                elif (self._reward_matrix[self._x_last, self._y_last] > REWARD_MATRIX_CRITICAL_2 and self._reward_matrix[self._x_last, self._y_last] <= REWARD_MATRIX_CRITICAL_3):
-                    reward = -7
-                elif (self._reward_matrix[self._x_last, self._y_last] > REWARD_MATRIX_CRITICAL_3 and self._reward_matrix[self._x_last, self._y_last] <= REWARD_MATRIX_CRITICAL_4):
-                    reward = -6
-                elif (self._reward_matrix[self._x_last, self._y_last] > REWARD_MATRIX_CRITICAL_4 and self._reward_matrix[self._x_last, self._y_last] <= REWARD_MATRIX_CRITICAL_5):
-                    reward = -5
-                elif r1 < 0:
-                    reward = (r1 * self._reward_matrix[self._x_last, self._y_last])
-                    reward += (r3 * self._reward_matrix[self._x_last, self._y_last] * self._path_matrix[self._x_last, self._y_last])
+        elif distance_robot_to_end < self._node_data.get_node_end().radius():
+            print('Wir haben gewonnen')
+            length = len(self._path)
+            for i in range(length):
+                if(i % 2 == 0):
+                    if(self._grid_matrix.shape[0] > self._path[i] and self._grid_matrix.shape[1] > self._path[i+1]):
+                        self._grid_matrix[self._path[i], self._path[i+1]] = PATH_MATRIX_OK
                 else:
-                    reward = (r1 * self._reward_matrix[self._x_last, self._y_last] * self._path_matrix[self._x_last, self._y_last])
-                    reward += (r3 * self._reward_matrix[self._x_last, self._y_last] * self._path_matrix[self._x_last, self._y_last])
+                    continue
 
-                #pathmatrix
-                self._path_matrix[self._x_last, self._y_last] -= PATH_MATRIX_DECREASE
+            if(self.LOAD_MATRIX == False):
+                np.save('matrices/_grid_matrix_'+str(test_num)+'.npy', self._grid_matrix)
 
-            self._x_last = int(robot_x*10)
-            self._y_last = int(robot_y*10) 
+            reward = 2_000 + self._final_reward
 
-            if self._gaussian_count == 100_000:
-                gauss_kernel = AiryDisk2DKernel(1)
-                smoothed_data_gauss = convolve(self._reward_matrix, gauss_kernel)
-                self._reward_matrix = smoothed_data_gauss
-                self._gaussian_count = 0
+            done = self._handle_terminate_at_end()
+
+        '''
+        Carrega grid
+        '''
+        if(self.LOAD_MATRIX == True):
+            self._grid_matrix = np.load('matrices/_grid_matrix_'+str(test_num)+'.npy', allow_pickle=True)
+        '''
+        Verifica distâncias angular e linear
+        '''
+        alpha = 2.0
+        ef = self._distance(self._node_data.get_node_end().x(), self._node_data.get_node_end().y(), self._node_data.get_node_start().x(), self._node_data.get_node_start().y())
+        r1 = (ef/(ef + distance_robot_to_end)) #- 0.5
+        r1 = r1*alpha #[0 <-> alpha]
+
+
+        theta = 1.5
+        x = self._node_data.get_node_end().x() - robot_x
+        y = self._node_data.get_node_end().y() - robot_y
+        diff = (robot_orientation - math.atan2(y, x)) % (math.pi * 2) #[0 <-> 2pi]
+        if diff >= math.pi:
+            diff -= math.pi * 2
+            diff = abs(diff)
+
+        r3 = 1 - (diff/math.pi)   #[0 <-> 1]
+        r3 = r3 * theta  #[0 <-> theta]
+
+        '''
+        Gera recompensa
+        '''
+        if(self._grid_matrix.shape[0] > self._x_last and self._grid_matrix.shape[1] > self._y_last):
+
+            reward = (r1 * self._grid_matrix[self._x_last, self._y_last])
+            reward += (r3 * self._grid_matrix[self._x_last, self._y_last])
+            reward = reward - (self._decaiment_count * 0.1)
+
+            if(reward >= 0):
+                self._final_reward = self._final_reward - reward                    
             else:
-                self._gaussian_count += 1
- 
+                self._final_reward = self._final_reward + reward
+                   
+            self._decaiment_count = self._decaiment_count + 1
+
         self._robot_x_last = robot_x
         self._robot_y_last = robot_y
         self._robot_orientation_last = robot_orientation
+
+        if(self.LOAD_MATRIX == False):
+            '''
+            Gerência Matriz
+            '''
+            ox = (np.sin(math.radians(90) - self._robot_orientation_last) * (observation[540]/0.05)) + self._robot_x_last
+            oy = (np.cos(math.radians(90) - self._robot_orientation_last) * (observation[540]/0.05)) + self._robot_y_last
+
+            xw  = int(round( ox / xy_resolution))
+            yw  = int(round( oy / xy_resolution))
+
+            self._x_last = int(round( self._robot_x_last / xy_resolution))
+            self._y_last = int(round( self._robot_y_last / xy_resolution))
+
+            if self._create_matrix == False:
+
+                self._grid_matrix = np.full((xw+1, yw+1), REWARD_MATRIX_START, dtype=float)
+
+                self._create_matrix = True
+
+                self._x_max = xw
+                self._y_max = yw
+
+                print ('self._x_max: {}'.format(self._x_max))
+                print ('self._y_max: {}'.format(self._y_max))
+
+            else:
+
+                if (xw > self._x_max):
+                    x = xw
+                    y = self._y_max + 1
+                    _x = x - self._x_max
+
+                    _matrix_temp = np.full((_x, y), REWARD_MATRIX_START, dtype=float)
+                    self._grid_matrix = np.append( self._grid_matrix, _matrix_temp, axis=0)
+
+                    self._x_max = xw
+
+                if (yw > self._y_max):
+                    x = self._x_max + 1 
+                    y = yw
+                    _y = y - self._y_max
+
+                    _matrix_temp = np.full((x, _y), REWARD_MATRIX_START, dtype=float)
+                    self._grid_matrix = np.append( self._grid_matrix, _matrix_temp, axis=1)
+
+                    self._y_max = yw
+
+            self._grid_matrix[xw-1, yw-1] = REWARD_MATRIX_HALL
+            self._path.append(self._x_last)
+            self._path.append(self._y_last)
+
+            '''
+            Convolução
+            '''
+            if self._gaussian_count == 25_000:
+                gauss_kernel = AiryDisk2DKernel(1)
+                smoothed_data_gauss = convolve(self._grid_matrix, gauss_kernel)
+                self._grid_matrix = smoothed_data_gauss
+                self._gaussian_count = 0
+            else:
+                self._gaussian_count += 1
+        else:
+            self._x_last = int(round( self._robot_x_last / xy_resolution))
+            self._y_last = int(round( self._robot_y_last / xy_resolution))
 
         return reward, done
 

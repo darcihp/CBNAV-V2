@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    version="1.1"
    width="1366"
    height="1059"
    viewBox="0 0 1366 1059"
    id="svg12"
    sodipodi:docname="ac5ac75376e2e43d9bb14460e41271d0_out.svg"
-   inkscape:version="1.0.2 (1.0.2+r75+1)">
+   inkscape:version="1.1.1 (1:1.1+202109281949+c3084ef5ed)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
   <sodipodi:namedview
      pagecolor="#ffffff"
      bordercolor="#666666"
@@ -27,13 +27,14 @@
      inkscape:window-height="1016"
      id="namedview6"
      showgrid="false"
-     inkscape:zoom="0.83097262"
-     inkscape:cx="683"
-     inkscape:cy="529.5"
+     inkscape:zoom="0.41548631"
+     inkscape:cx="891.72613"
+     inkscape:cy="626.97613"
      inkscape:window-x="40"
      inkscape:window-y="27"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg12" />
+     inkscape:current-layer="svg12"
+     inkscape:pagecheckerboard="0" />
   <metadata
      id="metadata18">
     <rdf:RDF>
@@ -55,56 +56,146 @@
      id="path10" />
   <circle
      style="fill:#00ffff;stroke-width:1.00157"
-     id="path292"
-     cx="169.68068"
-     cy="622.16248"
-     r="37.795277">
-    <title
-       id="title294">s e a:-90</title>
-  </circle>
-  <circle
-     style="fill:#00ffff;stroke-width:1.00157"
-     id="path292-3"
-     cx="188.93523"
-     cy="121.54432"
-     r="37.795277">
-    <title
-       id="title294-6">s e a:-90</title>
-  </circle>
-  <circle
-     style="fill:#00ffff;stroke-width:1.00157"
-     id="path292-7"
-     cx="740.09656"
-     cy="121.54432"
-     r="37.795277">
-    <title
-       id="title294-5">s e a:-90</title>
-  </circle>
-  <circle
-     style="fill:#00ffff;stroke-width:1.00157"
-     id="path292-35"
-     cx="1215.4431"
-     cy="193.74887"
+     id="23"
+     cx="1292.681"
+     cy="75.916573"
      r="37.795277">
     <title
        id="title294-62">s e a:-90</title>
   </circle>
   <circle
      style="fill:#00ffff;stroke-width:1.00157"
-     id="path292-9"
-     cx="1211.833"
-     cy="784.62274"
+     id="19"
+     cx="1288.6115"
+     cy="984.53009"
      r="37.795277">
     <title
-       id="title294-1">s e a:-90</title>
+       id="title294-1-6">s e a:90</title>
   </circle>
   <circle
      style="fill:#00ffff;stroke-width:1.00157"
-     id="path292-2"
-     cx="787.02954"
-     cy="867.65796"
+     id="14"
+     cx="591.44501"
+     cy="982.22699"
      r="37.795277">
     <title
-       id="title294-7">s e a:-90</title>
+       id="title294-1-7">s e a:90</title>
+  </circle>
+  <circle
+     style="fill:#00ffff;stroke-width:1.00157"
+     id="9"
+     cx="974.90753"
+     cy="77.541077"
+     r="37.795277">
+    <title
+       id="title294-1-8">s e a:-90</title>
+  </circle>
+  <circle
+     style="fill:#00ffff;stroke-width:1.00157"
+     id="2"
+     cx="86.005692"
+     cy="83.941162"
+     r="37.795277">
+    <title
+       id="title294-1-75">s e a:-90</title>
+  </circle>
+  <circle
+     style="fill:#00ffff;stroke-width:1.00157"
+     id="6"
+     cx="80.136742"
+     cy="715.70593"
+     r="37.795277">
+    <title
+       id="title294-1-28">s e a:90</title>
+  </circle>
+  <circle
+     style="fill:#00ffff;stroke-width:0.469587"
+     id="2-3"
+     cx="565.62231"
+     cy="308.61484"
+     r="17.720366">
+    <title
+       id="title294-1-75-6">s e a:0</title>
+  </circle>
+  <circle
+     style="fill:#00ffff;stroke-width:0.469587"
+     id="2-3-7"
+     cx="987.16071"
+     cy="293.01358"
+     r="17.720366">
+    <title
+       id="title294-1-75-6-5">s e a:180</title>
+  </circle>
+  <circle
+     style="fill:#00ffff;stroke-width:0.469587"
+     id="2-3-7-5"
+     cx="979.86719"
+     cy="979.91742"
+     r="17.720366">
+    <title
+       id="title294-1-75-6-5-62">s e a:180</title>
+  </circle>
+  <circle
+     style="fill:#00ffff;stroke-width:0.469587"
+     id="2-3-3"
+     cx="815.05865"
+     cy="597.21802"
+     r="17.720366">
+    <title
+       id="title294-1-75-6-56">s e a:-90</title>
+  </circle>
+  <circle
+     style="fill:#00ffff;stroke-width:0.469587"
+     id="2-3-2"
+     cx="459.4248"
+     cy="590.78455"
+     r="17.720366">
+    <title
+       id="title294-1-75-6-9">s e a:-90</title>
+  </circle>
+  <circle
+     style="fill:#00ffff;stroke-width:0.469587"
+     id="2-3-7-3"
+     cx="491.04822"
+     cy="306.51492"
+     r="17.720366">
+    <title
+       id="title294-1-75-6-5-6">s e a:180</title>
+  </circle>
+  <circle
+     style="fill:#00ffff;stroke-width:0.469587"
+     id="2-3-75"
+     cx="1087.9774"
+     cy="295.74527"
+     r="17.720366">
+    <title
+       id="title294-1-75-6-3">s e a:0</title>
+  </circle>
+  <circle
+     style="fill:#00ffff;stroke-width:0.469587"
+     id="2-3-75-9"
+     cx="1096.2235"
+     cy="983.14703"
+     r="17.720366">
+    <title
+       id="title294-1-75-6-3-1">s e a:0</title>
+  </circle>
+  <circle
+     style="fill:#00ffff;stroke-width:0.469587"
+     id="2-3-3-2"
+     cx="816.90753"
+     cy="474.14319"
+     r="17.720366">
+    <title
+       id="title294-1-75-6-56-7">s e a:90</title>
+  </circle>
+  <circle
+     style="fill:#00ffff;stroke-width:0.469587"
+     id="2-3-3-2-0"
+     cx="457.29544"
+     cy="480.68231"
+     r="17.720366">
+    <title
+       id="title294-1-75-6-56-7-9">s e a:90</title>
   </circle>
 </svg>

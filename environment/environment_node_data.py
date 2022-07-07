@@ -301,6 +301,8 @@ class NodeData:
             self._select_pair_next()
         elif self._mode == Mode.PAIR_RANDOM:
             self._select_pair_random()
+        elif self._mode == Mode.PAIR_RANDOM:
+            self._select_pair_random()
 
     def generate_robot_start_position(self):
         """

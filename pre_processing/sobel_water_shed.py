@@ -65,25 +65,11 @@ class pre_image:
     def get_square_id(self):
         return self.square_id
 
-    def save_image(self, prefix=""):
-        cv2.imwrite("./img/"+prefix+self.image, self.map_image)
-        print("Saved_IMG")
-
     def save_dictionary(self, prefix="", position=False):
 
-        if(position == False):
-            for i, connection in enumerate(self.connection):
-                self.d[connection[0]].append(connection[1])
-                self.d[connection[1]].append(connection[0])
+        with open("./dic/"+prefix+self.image.split(".")[0]+".json", "w") as fp:
+            json.dump(self.d, fp)
 
-        a_file = open("./dic/"+prefix+self.image.split(".")[0]+".json", "w")
-
-        if(position == False):
-            json.dump(self.d, a_file)
-        else:
-            json.dump(self.d_p, a_file)
-
-        a_file.close()
         print("Saved_DIC")
 
     def find_contours_sobel(self):
@@ -98,11 +84,10 @@ class pre_image:
         img_gray = rgb2gray(img)
         elevation_map = sobel(img_gray)     
         markers = rank.gradient(img_gray, disk(100)) < 2
-        #markers = np.zeros_like(img_gray)
-        #markers[img_gray < 254] = 1
-        #markers[img_gray > 255] = 2
         markers = ndi.label(markers)[0]
+
         segmentation = watershed(elevation_map, markers)
+
         for ir, row in enumerate(img_gray):
             for ic, col in enumerate(row):
                 if col == 0:
@@ -113,7 +98,6 @@ class pre_image:
         _dict = np.array([[0, 0], [1, 1]])
 
         #Linha por linha
-
         for ir, row in enumerate(segmentation):
             for ic, col in enumerate(row):
                 if col != 0:
@@ -157,6 +141,14 @@ class pre_image:
 
         unique, counts = np.unique(_dict, return_counts=True)
 
+        for ir, row in enumerate(unique):
+            if (ir != 0):
+                cofm = ndi.measurements.center_of_mass(img_gray, markers, row)
+                if(not np.isnan(np.sum(cofm))):
+                    print(cofm)
+                    color = (0, 0, 0)
+                    cv2.putText(segmentation, str(ir), (int(cofm[1]), int(cofm[0])), cv2.FONT_HERSHEY_SIMPLEX, 3, color, 2)
+
         print(unique)
         print(counts)
 
@@ -172,149 +164,35 @@ class pre_image:
                 if (count >= 30):
                     if key in self.d:
                         if not isinstance(self.d[key], list):
-                            self.d[key] = [self.d[key]]
+                            self.d[int(key)] = [self.d[int(key)]]
 
-                        self.d[key].append(j)
+                        self.d[int(key)].append(int(j))
                     else:
-                        self.d[key] = j
+                        self.d[int(key)] = int(j)
 
                     print("{} - {} : {}".format(key, j, count))
         print(self.d)
 
-        #margins = dict(hspace=0.01, wspace=0.01, top=1, bottom=0, left=0, right=1)
-        plt.figure(figsize=(6, 3))
-        plt.subplot(121)
-        plt.imshow(img_gray, cmap=plt.cm.gray, interpolation='nearest')
-        plt.axis('off')
-        #plt.contour(segmentation, [0.5], linewidths=1.2, colors='y')
-
-        plt.subplot(122)
-        plt.imshow(segmentation, cmap=plt.cm.jet, interpolation='nearest')
+        #plt.subplot(122)
+        plt.imshow(segmentation, cmap=plt.cm.jet)
         plt.axis('off')
         #plt.subplots_adjust(**margins)
 
-    def find_contours(self, _load=False):
+        self.save_dictionary("d_")
 
-        img = Image.open("./png/"+self.image)
-        w = img.width
-        h = img.height
-
-        print(w)
-        print(h)
-
-        img = imread("./png/"+self.image)
-        img_gray = rgb2gray(img)
-
-        image = img_as_ubyte(img_gray)
-
-        markers = rank.gradient(image, disk(180)) < 2
-        
-        markers = ndi.label(markers)[0]
-
-        gradient = rank.gradient(image, disk(5))
-
-        labels = watershed(gradient, markers)
-
-        '''
-        ax = axes.ravel()
-
-        ax[0].imshow(image, cmap=plt.cm.gray, interpolation='nearest')
-        ax[0].set_title("Original")
-
-        ax[1].imshow(gradient, cmap=plt.cm.Spectral, interpolation='nearest')
-        ax[1].set_title("Local Gradient")
-
-        ax[2].imshow(markers, cmap=plt.cm.Spectral, interpolation='nearest')
-        ax[2].set_title("Markers")
-
-        ax[3].imshow(image, cmap=plt.cm.gray, interpolation='nearest')
-        my_img = ax[3].imshow(labels, cmap=plt.cm.Spectral, interpolation='nearest', alpha=.2)
-        ax[3].set_title("Segmented")
-        '''
-
-        #https://dpi.lv/
         dpi = 166
-
-        fig = plt.figure(frameon=False)
-        fig.set_size_inches(image.shape[1]/dpi, image.shape[0]/dpi)
-
-        ax = plt.Axes(fig, [0., 0., 1., 1.])
-        ax.set_axis_off()
-        fig.add_axes(ax)
-
-        ax.imshow(image, cmap=plt.cm.gray, interpolation='nearest')
-        ax.imshow(labels, cmap=plt.cm.Spectral, interpolation='nearest', alpha=.2)
-
-        plt.savefig('teste.png', dpi=dpi)
-
-        pic = plt.imread('teste.png')/255
-
-        img = Image.open('teste.png')
-        w = img.width
-        h = img.height
-
-        self.map_image = ax
-
-def show_image():
-    cv2.imshow(windowName, _pre_image.find_contours(True))
-
-
-def click(event, x, y, flags, param):
-
-    if event == cv2.EVENT_LBUTTONUP:
-
-        contours = param.get_contours()
-        cX = [None]*len(contours)
-        cY = [None]*len(contours)
-
-        for i, c in enumerate(contours):
-            M = cv2.moments(c)
-
-            if M["m00"] != 0:
-                cX[i] = int(M["m10"] / M["m00"])
-                cY[i] = int(M["m01"] / M["m00"])
-            else:
-                cX[i] = 0
-                cY[i] = 0
-
-            a = np.array((cX[i], cY[i]))
-            b = np.array((x, y))
-
-            dist = np.sqrt(np.sum(np.square(a-b)))
-
-            if(dist < 40):
-                param.get_l_connection().append(param.get_square_id()[i])
-                cv2.circle(param.get_map_image(), (cX[i],cY[i]), 30, (0,255,0), 5)
-                print("OK")
-                break
-
-    if event == cv2.EVENT_MBUTTONUP:
-        print(param.get_l_connection())
-        print(param.get_connection())
-
-'''
-maps_id = []
-for _, _, arquivos in os.walk("./png"):
-    maps_id.append(arquivos)
-for i in range(len(maps_id[0][:])):
-    try:        
-        print(maps_id[0][i])
-        _pre_image = pre_image(maps_id[0][i])
-        _pre_image.pre_imagem(True)
-    except:
-        print("Error")
-        f = open("./log/error", "a")
-        f.write(maps_id[0][i])
-        f.write("\n")
-        f.close()
-        continue
+        plt.savefig("./img/I_"+self.image, dpi=dpi)
+        print("Saved_IMG")
 
 
 '''
-'''
-maps_id = []
-for _, _, arquivos in os.walk("./png"):
-    maps_id.append(arquivos)
+#Cria arquivo com mapas a serem lidos
+for _, _, arquivos in os.walk("./png"):print("")
+for arquivo in arquivos:
+    f = open("todo", "a")
+    f.write(arquivo)
+    f.write("\n")
+    f.close()
 '''
 
 a_file = open("todo", "r")
@@ -332,22 +210,3 @@ for i in range(len(maps_id)):
 
     #_pre_image.find_contours(True)
     _pre_image.find_contours_sobel()
-
-    while True:
-
-        #_pre_image.get_map_image().tight_layout()
-        plt.show()
-
-        break
-    #break
-
-'''
-#Cria arquivo com mapas a serem lidos
-for _, _, arquivos in os.walk("./png"):print("")
-for arquivo in arquivos:
-    f = open("todo", "a")
-    f.write(arquivo)
-    f.write("\n")
-    f.close()
-
-'''
